@@ -16,7 +16,7 @@ import os
 __VERSION__ = (1, 1, 1, 'final', 0)
 
 
-DEFAULT_BROKER = os.environ.get('BROKER_URL', 'redis://redis:6379/0')
+DEFAULT_BROKER = os.environ.get('BROKER_URL', 'amqp://qa3:guest@rabbitmq-cluster/qa3')
 DEFAULT_ADDR = os.environ.get('DEFAULT_ADDR', '0.0.0.0:8888')
 
 LOG_FORMAT = '[%(asctime)s] %(name)s:%(levelname)s: %(message)s'
