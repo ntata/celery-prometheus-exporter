@@ -24,8 +24,8 @@ LOG_FORMAT = '[%(asctime)s] %(name)s:%(levelname)s: %(message)s'
 TASKS = prometheus_client.Gauge(
     'celery_tasks', 'Number of tasks per state', ['state'])
 TASKS_NAME = prometheus_client.Gauge(
-    'celery_tasks_by_name', 'Number of tasks per state and name',
-    ['state', 'name'])
+    'celery_tasks_by_name', 'Number of tasks per state, name and kwargs',
+    ['state', 'name', 'kwargs'])
 WORKERS = prometheus_client.Gauge(
     'celery_workers', 'Number of alive workers')
 LATENCY = prometheus_client.Histogram(
@@ -92,7 +92,8 @@ class MonitorThread(threading.Thread):
         try:
             # remove event from list of in-progress tasks
             event = self._state.tasks.pop(evt['uuid'])
-            TASKS_NAME.labels(state=state, name=event.name).inc()
+            kwargs = self._state.tasks.pop(evt['kwargs'])
+            TASKS_NAME.labels(state=state, name=event.name, kwargs=event.kwargs).inc()
         except (KeyError, AttributeError):  # pragma: no cover
             pass
 
@@ -105,12 +106,13 @@ class MonitorThread(threading.Thread):
 
         # count unready tasks by state and name
         cnt = collections.Counter(
-            (t.state, t.name) for t in self._state.tasks.values() if t.name)
+            (t.state, t.name, t.kwargs) for t in self._state.tasks.values() if t.name)
         self._known_states_names.update(cnt.elements())
         for task_state in self._known_states_names:
             TASKS_NAME.labels(
                 state=task_state[0],
                 name=task_state[1],
+                kwargs=task_state[2],
             ).set(cnt[task_state])
 
     def _monitor(self):  # pragma: no cover
