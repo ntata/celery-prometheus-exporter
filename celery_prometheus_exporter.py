@@ -24,8 +24,8 @@ LOG_FORMAT = '[%(asctime)s] %(name)s:%(levelname)s: %(message)s'
 TASKS = prometheus_client.Gauge(
     'celery_tasks', 'Number of tasks per state', ['state'])
 TASKS_NAME = prometheus_client.Gauge(
-    'celery_tasks_by_name', 'Number of tasks per state, name and kwargs',
-    ['state', 'name', 'kwargs'])
+    'celery_tasks_by_name', 'Number of tasks per state, name and args',
+    ['state', 'name', 'args'])
 WORKERS = prometheus_client.Gauge(
     'celery_workers', 'Number of alive workers')
 LATENCY = prometheus_client.Histogram(
@@ -92,8 +92,8 @@ class MonitorThread(threading.Thread):
         try:
             # remove event from list of in-progress tasks
             event = self._state.tasks.pop(evt['uuid'])
-            kwargs = self._state.tasks.pop(evt['kwargs'])
-            TASKS_NAME.labels(state=state, name=event.name, kwargs=event.kwargs).inc()
+            args = self._state.tasks.pop(evt['args'])
+            TASKS_NAME.labels(state=state, name=event.name, args=args).inc()
         except (KeyError, AttributeError):  # pragma: no cover
             pass
 
@@ -106,13 +106,13 @@ class MonitorThread(threading.Thread):
 
         # count unready tasks by state and name
         cnt = collections.Counter(
-            (t.state, t.name, t.kwargs) for t in self._state.tasks.values() if t.name)
+            (t.state, t.name, t.args) for t in self._state.tasks.values() if t.name)
         self._known_states_names.update(cnt.elements())
         for task_state in self._known_states_names:
             TASKS_NAME.labels(
                 state=task_state[0],
                 name=task_state[1],
-                kwargs=task_state[2],
+                args=task_state[2],
             ).set(cnt[task_state])
 
     def _monitor(self):  # pragma: no cover
@@ -172,7 +172,7 @@ def setup_metrics(app):
         for state in celery.states.ALL_STATES:
             TASKS.labels(state=state).set(0)
             for task_name in set(chain.from_iterable(registered_tasks)):
-                TASKS_NAME.labels(state=state, name=task_name).set(0)
+                TASKS_NAME.labels(state=state, name=task_name, args=None).set(0)
 
 
 def start_httpd(addr):  # pragma: no cover
@@ -242,7 +242,6 @@ def main():  # pragma: no cover
             sys.exit(1)
         else:
             app.conf.broker_transport_options = transport_options
-
     setup_metrics(app)
 
     t = MonitorThread(app=app)

@@ -7,6 +7,7 @@ WORKDIR /app
 
 ENV PYTHONUNBUFFERED 1
 RUN pip install -r requirements/celery4.txt
+RUN pip install celery PyMySQL SQLAlchemy flower
 ADD celery_prometheus_exporter.py docker-entrypoint.sh /app/
 ENTRYPOINT ["/bin/sh", "/app/docker-entrypoint.sh"]
 CMD []
