@@ -92,8 +92,7 @@ class MonitorThread(threading.Thread):
         try:
             # remove event from list of in-progress tasks
             event = self._state.tasks.pop(evt['uuid'])
-            args = self._state.tasks.pop(evt['args'])
-            TASKS_NAME.labels(state=state, name=event.name, args=args).inc()
+            TASKS_NAME.labels(state=state, name=event.name, args=event.args).inc()
         except (KeyError, AttributeError):  # pragma: no cover
             pass
 
